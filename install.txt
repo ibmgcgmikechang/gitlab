@@ -11,6 +11,9 @@ oc adm policy add-scc-to-user anyuid -z gitlab-prometheus-alertmanager -n gitlab
 oc adm policy add-scc-to-user anyuid -z gitlab-prometheus-kube-state-metrics -n gitlab
 oc adm policy add-scc-to-user anyuid -z gitlab-prometheus-node-exporter -n gitlab
 oc adm policy add-scc-to-user anyuid -z gitlab-prometheus-server -n gitlab
+
+### Helm 3 ######
+
 helm repo add gitlab https://charts.gitlab.io/
 helm repo update
 
