@@ -1,0 +1,116 @@
+
+oc new-project gitlab
+oc create sa gitlab-shared-secrets
+oc adm policy add-scc-to-user anyuid -z gitlab-shared-secrets -n gitlab
+oc adm policy add-scc-to-user anyuid -z default -n gitlab
+oc adm policy add-scc-to-user anyuid -z gitlab-runner -n gitlab
+oc adm policy add-scc-to-user anyuid -z gitlab-certmanager -n gitlab
+oc adm policy add-scc-to-user anyuid -z gitlab-certmanager-issuer -n gitlab
+oc adm policy add-scc-to-user anyuid -z gitlab-gitlab-runner -n gitlab
+oc adm policy add-scc-to-user anyuid -z gitlab-prometheus-alertmanager -n gitlab
+oc adm policy add-scc-to-user anyuid -z gitlab-prometheus-kube-state-metrics -n gitlab
+oc adm policy add-scc-to-user anyuid -z gitlab-prometheus-node-exporter -n gitlab
+oc adm policy add-scc-to-user anyuid -z gitlab-prometheus-server -n gitlab
+helm repo add gitlab https://charts.gitlab.io/
+helm repo update
+
+helm install gitlab gitlab/gitlab --version 3.0.3 \
+  --namespace gitlab \
+  --set global.edition=ce \
+  --set global.ingress.enabled=true \
+  --set nginx-ingress.enabled=false \
+  --set certmanager.install=false \
+  --set global.ingress.configureCertmanager=false \
+  --set gitlab-runner.install=false \
+  --set global.hosts.https=true \
+  --set global.hosts.externalIP=119.81.131.36 \
+  --set global.hosts.domain=roks43-c0cf31a7105ba2e43673410c8b780e74-0000.hkg02.containers.appdomain.cloud \
+  --set global.ingress.class= \
+  --set prometheus.install=false \
+  --set gitlab.sidekiq.minReplicas=1 \
+  --set gitlab.sidekiq.maxReplicas=1 \
+  --set registry.hba.minReplicas=1 \
+  --set registry.hba.maxReplicas=3 \
+  --set gitlab.unicorn.minReplicas=1 \
+  --set gitlab.unicorn.maxReplicas=1 \
+  --set gitlab.gitlab-shell.minReplicas=1 \
+  --set gitlab.gitlab-shell.maxReplicas=1 \
+  --set global.appConfig.ldap.servers.main.label='LDAP' \
+  --set global.appConfig.ldap.servers.main.host='172.21.90.217' \
+  --set global.appConfig.ldap.servers.main.port='389' \
+  --set global.appConfig.ldap.servers.main.uid='uid' \
+  --set global.appConfig.ldap.servers.main.bind_dn='cn=admin\,dc=ibm\,dc=com' \
+  --set global.appConfig.ldap.servers.main.password.secret='ldap-main-password' \
+  --set global.appConfig.ldap.servers.main.base='ou=people\,dc=ibm\,dc=com' \
+  --set global.appConfig.ldap.servers.main.group_base='ou=groups\,dc=ibm\,dc=com'
+
+
+kubectl create secret generic ldap-main-password --from-literal=password=Passw0rd
+
+NAME: gitlab
+LAST DEPLOYED: Thu Apr  2 16:11:12 2020
+NAMESPACE: gitlab
+STATUS: deployed
+REVISION: 1
+NOTES:
+WARNING: Automatic TLS certificate generation with cert-manager is disabled and no TLS certificates were provided. Self-signed certificates were generated.
+
+You may retrieve the CA root for these certificates from the `gitlab-wildcard-tls-ca` secret, via the following command. It can then be imported to a web browser or system store.
+
+    kubectl get secret gitlab-wildcard-tls-ca -ojsonpath='{.data.cfssl_ca}' | base64 --decode > gitlab.gitlab.democluster-969061-c0cf31a7105ba2e43673410c8b780e74-0000.us-east.containers.appdomain.cloud.ca.pem
+
+If you do not wish to use self-signed certificates, please set the following properties:
+  - global.ingress.tls.secretName
+  OR
+  - gitlab.unicorn.ingress.tls.secretName
+  - registry.ingress.tls.secretName
+  - minio.ingress.tls.secretName
+
+WARNING: If you are upgrading from a previous version of the GitLab Helm Chart, there is a major upgrade to the included PostgreSQL chart, which requires manual steps be performed. Please see our upgrade documentation for more information: https://docs.gitlab.com/charts/installation/upgrade.html
+
+
+Release "gitlab" does not exist. Installing it now.
+NAME: gitlab
+LAST DEPLOYED: Tue Feb 11 10:40:01 2020
+NAMESPACE: gitlab
+STATUS: deployed
+REVISION: 1
+NOTES:
+WARNING: Automatic TLS certificate generation with cert-manager is disabled and no TLS certificates were provided. Self-signed certificates were generated.
+
+You may retrieve the CA root for these certificates from the `gitlab-wildcard-tls-ca` secret, via the following command. It can then be imported to a web browser or system store.
+
+    kubectl get secret gitlab-wildcard-tls-ca -ojsonpath='{.data.cfssl_ca}' | base64 --decode > gitlab.apps.ocp42.ibmdemo.local.ca.pem
+
+If you do not wish to use self-signed certificates, please set the following properties:
+  - global.ingress.tls.secretName
+  OR
+  - gitlab.unicorn.ingress.tls.secretName
+  - registry.ingress.tls.secretName
+  - minio.ingress.tls.secretName
+
+WARNING: If you are upgrading from a previous version of the GitLab Helm Chart, there is a major upgrade to the included PostgreSQL chart, which requires manual steps be performed. Please see our upgrade documentation for more information: https://docs.gitlab.com/charts/installation/upgrade.html
+
+root@loadbr:/labs/gitlab# helm pull gitlab/gitlab --version 3.0.3
+root@loadbr:/labs/gitlab# ls
+certs  gitlab-3.0.3.tgz  hints  hints.bak  my-ldap-password-secret.yaml  scc.yaml
+use gitlab-3.0.3.tgz for offline helm chart installation. Also, need to download the following docker images or put them in mirrored registry
+
+Login as appowner1 from ldap and successfully login. Need to update the profile by entering email address appowner1@ibmdemo.local and click "Update" button
+As email authentication is not available in this POC, need to login GITLIB via root and udpate the appowner1 and other accounts.
+For the same for appowner2 and appowner3 and create group "demo" under this user with visibility level as public
+
+Then create regular users for developer1, developer2 and developer3
+
+admin user: root
+init password: 
+kubectl get secret gitlab-gitlab-initial-root-password -ojsonpath='{.data.password}' | base64 --decode ; echo
+
+	add below to buildconfig or any other default build config
+        - name: GIT_SSL_NO_VERIFY
+          value: 'true'
+
+After all setting is done. It is found that ldap authenticated reguler user appowner1 is not able to git clone the project but access to web GUI is found. Isolation is done by defining another reguler user (using gitlab native) and commend git clone is no problem.
+
+oc export all --as-template=gitlab
+
